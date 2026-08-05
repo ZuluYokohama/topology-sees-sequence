@@ -57,13 +57,21 @@ def read_cif_backbone(path):
     return out
 
 def _rot_between(u, v):
+    """Minimal SO(3) rotation taking unit vector u onto v (det = +1 always)."""
     c = np.clip(u @ v, -1, 1)
     ax = np.cross(u, v); s = norm(ax)
     if s < 1e-12:
-        return np.eye(3) if c > 0 else -np.eye(3)
-    ax = ax/s; th = np.arctan2(s, c)
-    K = np.array([[0,-ax[2],ax[1]],[ax[2],0,-ax[0]],[-ax[1],ax[0],0]])
-    return np.eye(3) + np.sin(th)*K + (1-np.cos(th))*K@K
+        if c > 0:
+            return np.eye(3)
+        # Antiparallel: 180° about a deterministic axis perpendicular to u.
+        # -I is improper (det=-1) and must not be used.
+        helper = np.array([1., 0., 0.]) if abs(u[0]) < 0.9 else np.array([0., 1., 0.])
+        ax = np.cross(u, helper); ax = ax / norm(ax)
+        # Rodrigues with th=π: I + 0*K + 2 K@K = 2 n n^T - I
+        return 2.0 * np.outer(ax, ax) - np.eye(3)
+    ax = ax / s; th = np.arctan2(s, c)
+    K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+    return np.eye(3) + np.sin(th) * K + (1 - np.cos(th)) * (K @ K)
 
 def bishop_holonomy(CA):
     n = len(CA)
@@ -104,10 +112,28 @@ def analyse(CA):
                 ca_mean=float(np.mean(d)), ca_min=float(np.min(d)), ca_max=float(np.max(d)),
                 lam_min=lam_min(th, N), E_tot=E_tot(th, N))
 
-def read_pdb_ca(path):
-    d = {}
+def read_pdb_ca(path, chain=None):
+    """Read CA coordinates, preserving chain identity.
+
+    chain=None  → return dict[chain_id] -> (N,3) CA array (all chains, separate).
+    chain='A'   → return (N,3) array for that chain only, or None if empty.
+    Never merges distinct chains into one CA curve.
+    """
+    by_chain = {}
     for line in open(path, errors='ignore'):
         if line.startswith(('ATOM', 'HETATM')) and line[12:16].strip() == 'CA':
-            d[int(line[22:26])] = np.array([float(line[30:38]), float(line[38:46]), float(line[46:54])])
-        if line.startswith('ENDMDL'): break
-    return np.array([d[k] for k in sorted(d)]) if d else None
+            ch = line[21].strip() or 'A'
+            if chain is not None and ch != chain:
+                continue
+            resi = int(line[22:26])
+            xyz = np.array([float(line[30:38]), float(line[38:46]), float(line[46:54])])
+            by_chain.setdefault(ch, {})[resi] = xyz
+        if line.startswith('ENDMDL'):
+            break
+    arrays = {
+        ch: np.array([d[k] for k in sorted(d)])
+        for ch, d in by_chain.items() if d
+    }
+    if chain is not None:
+        return arrays.get(chain)
+    return arrays
