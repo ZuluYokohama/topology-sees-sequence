@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
 cifs/
+# large HF dumps (re-download from AfCycDesign)
+data/afcycpep_data_hallucinated.csv
+# keep small experimental + analysis outputs tracked
 

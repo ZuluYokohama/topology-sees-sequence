@@ -32,8 +32,10 @@
 
 ## P2 status
 
-**Untested** against a valid strain-specific observable.
+**Parked** — do not force P2 on deposited AF / total score / Bishop-on-closed.
 
-Invalid instruments: Rosetta total, Bishop-on-closed as proxy for reference θ.
+Invalid or exhausted instruments: Rosetta total, Bishop-on-closed as proxy for reference θ, geometric E_bb on post-relax AF torsions.
 
-Valid next: Rosetta rama/omega terms; E(cyclized)−E(linear); experimental yields.
+**Active instead:** E_ref as **sequence prior** (no coordinates). See `NOTES_EREF_PRIOR.md` — designed vs experimental vs random distributions; generators are not low-E_ref vs random (composition-shifted; extreme tail empty).
+
+Valid later (when instrument exists): Rosetta rama/omega terms; cyclized−linear backbone ΔE; literature cyclization yields.

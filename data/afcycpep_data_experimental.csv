@@ -1,0 +1,9 @@
+ID,sequence,nmer,rosetta_score,hf_path,Type
+RH7_1,WMPGRDP,7,,./data/CCDC_cifs/RH7_1.cif,Experimental
+RH8_1,DPRDPWTG,8,,./data/CCDC_cifs/RH8_1.cif,Experimental
+RH9_1,LAWIMPELG,9,,./data/CCDC_cifs/RH9_1.cif,Experimental
+RH10_1,LPDPRWADLG,10,,./data/CCDC_cifs/RH10_1.cif,Experimental
+RH11_1,LPGTEWERMHG,11,,./data/CCDC_cifs/RH11_1.cif,Experimental
+RH12_1,DIYYPEYNMRIG,12,,./data/CCDC_cifs/RH12_1.cif,Experimental
+RH13_1,EYDAAGRLDPATG,13,,./data/CCDC_cifs/RH13_1.cif,Experimental
+RAR13_1,TDPEDVLRGLPGA,13,,./data/CCDC_cifs/RAR13_1.cif,Experimental
