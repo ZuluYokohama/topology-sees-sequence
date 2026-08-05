@@ -1,76 +1,51 @@
-# Topology Sees Sequence
+# Topology / Holonomy of Cyclic Peptides
 
-**Kernel dimension of the kinematic sheaf is a step function of proline content in cyclic peptides.**
+Research code for geometric obstruction in cyclic peptide backbones.
 
-Middle-out SE(3) monodromy pipeline · Hard domain reduction · AfCycDesign grounding
+## Corrected core claims (Aug 2026)
 
-## Core claim
+1. **Reference-connection strain** — the residual SE(3) screw of the product of residue transforms with every residue at preferred Ramachandran geometry — is the geometrically right obstruction object (`derive.py`). It is strongly sequence-dependent (poly-Pro ≫ poly-Ala).
 
-When proline is treated as a genuine dimensional reduction of the local configuration space (φ constrained, only ψ free), the kernel dimension of the discrete kinematic monodromy map becomes sequence-dependent:
+2. **Bishop holonomy** of the deposited CA curve is a real, reproducible geometric invariant (transport ↔ Gauss–Bonnet to 1e−15) but is **not** the sheaf θ of the abelian paper. On AF-designed closed scaffolds it shows approximately zero Spearman correlation with reference strain (ρ ≈ 0, n=450) — descriptive association, not a claim of statistical independence under a pre-registered null.
 
-```
-#Pro (N=5)   0  1  2  3  4  5
-ker dim      4  3  2  1  0  0
-```
+3. **ψ ≈ φ closure locus** — pure geometry: 182 uniform rise≈0 solutions for N=5–16, 100% with |ψ−φ| < 15°.
 
-Topology is therefore **not** sequence-blind. Scalar stiffness only rescales the metric (positive spectrum). Dimensional reduction moves the topological count itself.
+4. **Combinatorial proline count** is not a free topological invariant.
 
-## Middle-out pipeline
+5. **Rosetta total score** does not track backbone strain; P2 against it is invalid.
 
-```
-Slice 0  Topological core      sequence → domain → ker / obstruction
-Slice 1  Local metric          residue stiffness / preferred basins
-Slice 2  Kinematic connection  SE(3) Jacobian + spectrum + residual
-Slice 3  Progressive closure   residual trajectory under rising constraint
-```
+See `STATUS_P1_P2.md`, `CORRECTIONS.md`, and `NOTES_EMPIRICAL.md`.
 
-The topological coordinate is computed first and never discarded. This is the dimensionalization path that end-to-end generative abstraction collapses.
-
-Entry point: `middle_out_pipeline.py`
-
-## Real-data grounding
-
-- 10k+ hallucinated cyclic scaffolds from [AfCycDesign](https://huggingface.co/datasets/RosettaCommons/AfCycDesign)
-- Obstruction distribution peaks at 0–2; extreme obstruction (≥4) is rare (~1.5%) and Pro-rich
-- Consistent with design pipelines avoiding the topologically tight regime
-
-## Key results (controlled model)
-
-| Descriptor | Spearman vs strain proxy |
-|------------|--------------------------|
-| Raw #Pro | ~0.80 |
-| Kernel dimension | ~0.80 |
-| Hybrid (4−ker + λ) | ~0.81 |
-
-## Repository layout
-
-```
-middle_out_pipeline.py          # executable middle-out stack
-kinematic_*.py                  # SE(3) connection + variable-rank
-variable_rank_sheaf.py          # abelian variable-rank demonstration
-sequence_topological_fingerprint.py
-calibration_*.py
-spectral_fingerprint.py
-FULL_DRAFT_topology_sees_sequence.md
-COHERENT_ALIGNMENT.md
-CODE_REVIEW.md
-fig*.png / fig*.pdf             # core figures (see releases or local artifacts)
-```
-
-## Reproducibility
-
-Python 3.10+, NumPy, SciPy, Matplotlib. Optional: `datasets`, `biopython`, `huggingface_hub` for AfCycDesign pulls.
+## Quick start
 
 ```bash
-python middle_out_pipeline.py
-python sequence_topological_fingerprint.py
-python make_figures.py
+pip install numpy scipy
+python derive.py          # reference strain on poly-A / sequence variants
+python run_p1.py          # Bishop on experimental CCDC CIFs (needs network)
+python middle_out_pipeline.py   # earlier kinematic stack (model object)
 ```
 
-## Citation / status
+## Empirical notes
 
-Research draft, 4 August 2026. Supersedes earlier abelian equal-rank treatments that concluded topology is sequence-blind.
+| Test | Result |
+|------|--------|
+| E_ref vs Bishop E (n=450) | ρ ≈ 0 |
+| E_ref vs Rosetta total | ρ ≈ −0.10 |
+| Empirical rama NLL/residue vs N (n=131) | ρ ≈ −0.62 (length association; see NOTES_EMPIRICAL) |
+| E_ref vs NLL/residue | ρ ≈ +0.36 (descriptive; density fit on same set) |
+
+P2 remains **untested** against a true backbone energy (rama/omega terms or cyclized−linear ΔE). Details: `P2_PROTOCOL.md`.
+
+## Layout
+
+- `derive.py` — reference-connection strain (`omega_mode='trans'|'cis_pro'`)
+- `holonomy_extract.py` / `run_p1.py` — Bishop measurement
+- `middle_out_pipeline.py` — SE(3) kinematic slices
+- `STATUS_P1_P2.md` / `CORRECTIONS.md` — status and corrections log
+- `NOTES_EMPIRICAL.md` / `NOTES_CIS_PRO.md` / `NOTES_TIER_A_LITE.md` — empirical notes
+- `P2_PROTOCOL.md` — pre-registered P2 experiment protocol
+- `CODE_REVIEW.md` — multi-domain review
 
 ## License
 
-Research code — use with attribution. Not a production design tool.
+Research code — use with attribution.

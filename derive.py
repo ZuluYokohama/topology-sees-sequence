@@ -37,39 +37,71 @@ def se3_log(T):
 REF={'G':(-82.,8.),'P':(-65.,145.),'X':(-63.,-43.)}
 cls=lambda r: r if r in ('G','P') else 'X'
 
-def ref_holonomy(seq):
-    M=np.eye(4)
-    for r in seq:
-        p,s=REF[cls(r)]; M=M@T_res(np.deg2rad(p),np.deg2rad(s))
+def _omegas_for(seq, omega_mode='trans'):
+    """Per-residue omega conventions.
+
+    omega_mode:
+      'trans'   — ω=π for every residue (default, paper-style all-trans).
+      'cis_pro' — ω=0 for Pro, ω=π otherwise (executable cis-Pro convention).
+      sequence of length N — explicit omegas in radians.
+    """
+    n = len(seq)
+    if isinstance(omega_mode, (list, tuple, np.ndarray)):
+        if len(omega_mode) != n:
+            raise ValueError('omega sequence length must match seq')
+        return list(omega_mode)
+    if omega_mode == 'trans':
+        return [np.pi] * n
+    if omega_mode == 'cis_pro':
+        return [0.0 if r == 'P' else np.pi for r in seq]
+    raise ValueError(f"unknown omega_mode: {omega_mode!r}")
+
+
+def ref_holonomy(seq, omega_mode='trans'):
+    omegas = _omegas_for(seq, omega_mode)
+    M = np.eye(4)
+    for r, om in zip(seq, omegas):
+        p, s = REF[cls(r)]
+        M = M @ T_res(np.deg2rad(p), np.deg2rad(s), om)
     return M
 
-def closure_jac(seq):
-    N=len(seq); Ts=[]
-    for r in seq:
-        p,s=REF[cls(r)]; Ts.append(T_res(np.deg2rad(p),np.deg2rad(s)))
-    J=np.zeros((6,2*N)); eps=1e-6
+
+def closure_jac(seq, omega_mode='trans'):
+    omegas = _omegas_for(seq, omega_mode)
+    N = len(seq)
+    Ts = []
+    for r, om in zip(seq, omegas):
+        p, s = REF[cls(r)]
+        Ts.append(T_res(np.deg2rad(p), np.deg2rad(s), om))
+    J = np.zeros((6, 2 * N)); eps = 1e-6
     for i in range(N):
-        for j,_ in enumerate(('phi','psi')):
-            p,s=REF[cls(seq[i])]; d=[np.deg2rad(p),np.deg2rad(s)]; d[j]+=eps
-            Tp=T_res(d[0],d[1])
-            M0=np.eye(4); M1=np.eye(4)
+        for j, _ in enumerate(('phi', 'psi')):
+            p, s = REF[cls(seq[i])]; d = [np.deg2rad(p), np.deg2rad(s)]; d[j] += eps
+            Tp = T_res(d[0], d[1], omegas[i])
+            M0 = np.eye(4); M1 = np.eye(4)
             for k in range(N):
-                M0=M0@Ts[k]; M1=M1@(Tp if k==i else Ts[k])
-            J[:,2*i+j]=(se3_log(M1)-se3_log(M0))/eps
+                M0 = M0 @ Ts[k]; M1 = M1 @ (Tp if k == i else Ts[k])
+            J[:, 2 * i + j] = (se3_log(M1) - se3_log(M0)) / eps
     return J
 
-def strain(seq):
-    M=ref_holonomy(seq); xi=se3_log(M); J=closure_jac(seq)
-    dq=-pinv(J)@xi
-    return dict(theta=norm(xi[:3]), theta_deg=np.degrees(norm(xi[:3])),
-                gap=norm(xi[3:]), E=float(dq@dq), N=len(seq))
 
-if __name__=='__main__':
+def strain(seq, omega_mode='trans'):
+    M = ref_holonomy(seq, omega_mode); xi = se3_log(M); J = closure_jac(seq, omega_mode)
+    dq = -pinv(J) @ xi
+    return dict(theta=norm(xi[:3]), theta_deg=np.degrees(norm(xi[:3])),
+                gap=norm(xi[3:]), E=float(dq @ dq), N=len(seq), omega_mode=omega_mode)
+
+
+if __name__ == '__main__':
     print('N  theta(deg)  gap  E')
-    for N in [7,9,12,15]:
-        r=strain('A'*N)
+    for N in [7, 9, 12, 15]:
+        r = strain('A' * N)
         print(f"{N:3d} {r['theta_deg']:10.2f} {r['gap']:8.3f} {r['E']:10.4f}")
-    print('seq strain at N=12:')
-    for s in ['A'*12,'G'*12,'P'*12,'PG'*6]:
-        r=strain(s)
+    print('seq strain at N=12 (trans ω):')
+    for s in ['A' * 12, 'G' * 12, 'P' * 12, 'PG' * 6]:
+        r = strain(s)
         print(f"  {s:20s} E={r['E']:.3f} theta={r['theta_deg']:.1f}")
+    print('poly-Pro N=12 cis_pro vs trans:')
+    for mode in ('trans', 'cis_pro'):
+        r = strain('P' * 12, omega_mode=mode)
+        print(f"  omega_mode={mode:8s} E={r['E']:.3f} theta={r['theta_deg']:.1f}")
